@@ -1,1 +1,1 @@
-# FastMCPexample
+# FinanceHelper
