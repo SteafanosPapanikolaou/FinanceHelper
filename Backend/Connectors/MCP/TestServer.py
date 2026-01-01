@@ -56,5 +56,7 @@ async def main(type_of_answer: str, ctx: Context) -> str:
         print(data)
         return data
 
-
     return 'No answer'
+
+if __name__ == '__main__':
+    app.run(transport="http", port=8000)
