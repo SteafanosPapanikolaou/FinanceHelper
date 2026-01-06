@@ -1,5 +1,5 @@
 from langchain_mcp_adapters.client import MultiServerMCPClient
-from langgraph.prebuilt import create_react_agent
+from langchain.agents import create_agent
 from Backend.Connectors.LLM_Connector import LLMConnector
 import mcp
 
@@ -9,10 +9,10 @@ async def elicitation_callbak(context, params):
 
 class MCPClient:
     def __init__(self):
-        self.llm = LLMConnector(model='qwen3:1.7b')
+        self.llm = LLMConnector.llm_connect(model='qwen3:1.7b')
         self.client = MultiServerMCPClient({
             "main_server": {
-                "url": "http://localhost:8001/mcp",
+                "url": "http://localhost:8000/mcp",
                 "transport": "streamable_http",
                 "session_kwargs": {
                     "elicitation_callback": elicitation_callbak,
@@ -26,7 +26,7 @@ class MCPClient:
     async def setup(self):
         self.tools = await self.client.get_tools()
 
-        self.agent = create_react_agent(self.llm, self.tools, prompt=self.prompt)
+        self.agent = create_agent(model=self.llm, tools=self.tools, system_prompt=self.prompt)
 
     async def generate_answer(self, query):
         agent_answer = await self.agent.ainvoke({
