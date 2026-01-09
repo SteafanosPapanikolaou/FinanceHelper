@@ -1,9 +1,9 @@
-from langchain_ollama.llms import OllamaLLM
+from langchain_ollama.chat_models import ChatOllama
 
-class LLMConnector(OllamaLLM):
+class LLMConnector(ChatOllama):
 
     @staticmethod
-    def llm_connect(model = 'qwen3:4b', base_url = '') -> OllamaLLM:
+    def llm_connect(model = 'qwen3:4b', base_url = '') -> ChatOllama:
         """
         Interface for LLM Ollama API call
 
@@ -12,6 +12,6 @@ class LLMConnector(OllamaLLM):
         :return:
         """
 
-        llm = OllamaLLM(model=model, base_url=base_url, temperature=0)
+        llm = ChatOllama(model=model, base_url=base_url, temperature=0)
 
         return llm
