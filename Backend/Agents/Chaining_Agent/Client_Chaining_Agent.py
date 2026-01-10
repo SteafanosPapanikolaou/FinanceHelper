@@ -10,7 +10,7 @@ async def elicitation_callbak(context, params):
 
 class MCPClient:
     def __init__(self):
-        self.llm = LLMConnector.llm_connect(model='qwen3:1.7b')
+        self.llm = LLMConnector.llm_connect(model='qwen3:4b')
         self.client = MultiServerMCPClient({
             "main_server": {
                 "url": "http://localhost:8000/mcp",
@@ -30,11 +30,16 @@ class MCPClient:
         self.agent = create_agent(model=self.llm, tools=self.tools, system_prompt=self.prompt)
 
     async def generate_answer(self, query):
-        agent_answer = await self.agent.ainvoke({
+        # agent_answer = await self.agent.ainvoke({
+        #     "messages": [{"role": "user", "content": query}],
+        # })
+        # return agent_answer['messages'][-1].content
+        async for event in self.agent.astream({
             "messages": [{"role": "user", "content": query}],
-        })
+        }):
+            print(event)
 
-        return agent_answer['messages'][-1].content
+        return event
 
 
 async def main():
