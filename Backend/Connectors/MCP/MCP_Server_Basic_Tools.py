@@ -26,6 +26,26 @@ async def strategy_to_knowledge_graph(user_summary: str, topic: str, ctx: Contex
     print(user_summary)
     print(topic)
 
+    if not user_summary:
+        answer = await ctx.elicit(
+            message='Please describe the strategy you want to save at the knowledge graph.',
+            response_type=str
+        )
+        if answer.answer == "accept":
+            user_summary =  answer.data
+
+    if not topic:
+
+        answer = await ctx.elicit(
+            message='I was not able to pinpoint the topic, of your strategy please describe it.',
+            response_type=str
+        )
+        if answer.answer == "accept":
+            topic =  answer.data
+
+    print(user_summary)
+    print(topic)
+
     return 'Success'
 
 if __name__ == '__main__':
