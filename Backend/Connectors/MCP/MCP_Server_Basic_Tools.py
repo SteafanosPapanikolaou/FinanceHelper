@@ -3,9 +3,12 @@ from fastmcp.client.sampling import SamplingMessage, SamplingParams, RequestCont
 from langchain_core.prompts import PromptTemplate
 from Backend.Connectors.LLM_Connector import (LLMConnector)
 
+from Backend.Agents.Chaining_Agent.Chaining_Agent import ChainingAgent
+
+
 async def basic_sampling_handler(messages: list[SamplingMessage], params: SamplingParams, context: RequestContext):
     system_prompt = params.systemPrompt or "You are a helpful assistant."
-    llm = LLMConnector(model = 'qwen3:1.7b')
+    llm = LLMConnector(model='qwen3:4b')
     qa_prompt = PromptTemplate(template=system_prompt)
 
     qa_chain = qa_prompt | llm
@@ -23,17 +26,23 @@ async def strategy_to_knowledge_graph(user_summary: str, topic: str, ctx: Contex
     user_summary: Summarize the user strategy.
     topic: If explicitly stated describe the topic | '' """
 
-    print(user_summary)
-    print(topic)
-
+    # Handle user_summary
     if not user_summary:
         answer = await ctx.elicit(
             message='Please describe the strategy you want to save at the knowledge graph.',
             response_type=str
         )
         if answer.answer == "accept":
-            user_summary =  answer.data
+            user_summary = answer.data
 
+        if not topic:
+            answer = await ctx.sample("",
+                                      system_prompt=f"Read the Context. "
+                                                    f"If explicitly stated, describe the topic, else return ''."
+                                                    f"Context: {user_summary}", )
+            topic = answer.text
+
+    # Handle topic
     if not topic:
 
         answer = await ctx.elicit(
@@ -41,12 +50,14 @@ async def strategy_to_knowledge_graph(user_summary: str, topic: str, ctx: Contex
             response_type=str
         )
         if answer.answer == "accept":
-            topic =  answer.data
+            topic = answer.data
 
-    print(user_summary)
-    print(topic)
+    # Use of agent.
+    sub_agent_chainer = ChainingAgent(topic=topic)
+    sub_agent_chainer.create_kg(query=user_summary)
 
-    return 'Success'
+    return 'Successfully created the Knowledge Graph'
+
 
 if __name__ == '__main__':
     app.run(transport="http", port=8000)
