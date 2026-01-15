@@ -3,8 +3,9 @@ from Backend.Connectors.LLM_Connector import LLMConnector
 from Backend.Connectors.prompt_lib.prompts_lib import AgentPromptLibrary
 from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, PromptTemplate, HumanMessagePromptTemplate
 
+
 class ChainingAgent:
-    def __init__(self, credentials = '', model= 'qwen3:4b', topic = 'Stock Market Strategy'):
+    def __init__(self, credentials='', model='qwen3:4b', topic='Stock Market Strategy'):
 
         # Neo4j initialization
         if not credentials:
