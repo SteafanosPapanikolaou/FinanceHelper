@@ -42,14 +42,33 @@ class RoutingAgent:
 
         # Agentic Initialization
         self.llm = LLMConnector.llm_connect(model=model)
-        self.agent_template = AgentPromptLibrary.chaining_agent_prompt()
+        self.deep_agent_prompt = AgentPromptLibrary.routing_agent_prompt()
 
         self.agent = create_deep_agent(
-            model="claude-sonnet-4-5-20250929",
-            system_prompt="You coordinate data analysis and reporting. Use subagents for specialized tasks.",
+            model=self.llm,
+            system_prompt=self.deep_agent_prompt,
             subagents=self.subagents
         )
+
+    def get_distribution(self, user_query):
+        input_state = {
+            "messages": [
+                ("human", user_query)
+            ]
+        }
+
+        # for event in self.agent.stream(input_state):
+        #     print(event)
+
+        return self.agent.invoke(input_state)
 
 
 if __name__ == '__main__':
     agent = RoutingAgent()
+
+    queries = ['I want to update my strategy. If you find stock at 30 dollars buy.',
+             'What is the plan if my stock drops below 20%?',
+             'Buy the Tesla stock, as described by the plan.']
+
+    for query in queries:
+        agent.get_distribution(query)

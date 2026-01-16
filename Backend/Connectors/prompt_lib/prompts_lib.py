@@ -29,3 +29,17 @@ Please provide the cypher query only, without any additional text or explanation
 {topic}""")
 
         return chaining_agent_prompt
+
+    @staticmethod
+    def routing_agent_prompt():
+        """
+        Prompt for chaining agent.
+        :return: str
+        """
+
+        routing_agent_prompt = (
+            """
+You are a llm-agent manager.
+Use the suitable agent, according to user query and agent description.""")
+
+        return routing_agent_prompt
