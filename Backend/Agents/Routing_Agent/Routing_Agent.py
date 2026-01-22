@@ -1,74 +1,60 @@
+import time
 from Backend.Connectors.LLM_Connector import LLMConnector
 from Backend.Connectors.prompt_lib.prompts_lib import AgentPromptLibrary
-from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, PromptTemplate, HumanMessagePromptTemplate
-from deepagents import create_deep_agent
+from langchain_core.prompts import (ChatPromptTemplate, SystemMessagePromptTemplate, PromptTemplate,
+                                    HumanMessagePromptTemplate)
 
 
 class RoutingAgent:
-    def __init__(self, model='qwen3:1.7b'):
+    def __init__(self, model='qwen3:4b'):
 
-        self.subagents = [
-            {
-                "name": "natural-language-to-plan-creator",
-                "description": "If user explicit asks, saves the strategy described by user.",
-                "system_prompt": (
-                    "You are a stubbed agent.\n"
-                    "Always respond with exactly the following text and nothing else:\n\n"
-                    "Plan created."
-                ),
-                "tools": "",
-            },
-            {
-                "name": "plan-reader",
-                "description": "Read and explain the strategy.",
-                "system_prompt": (
-                    "You are a stubbed agent.\n"
-                    "Always respond with exactly the following text and nothing else:\n\n"
-                    "Strategy red."
-                ),
-                "tools": "",
-            },
-            {
-                "name": "action-taker",
-                "description": "Take actions as described by strategy.",
-                "system_prompt": (
-                    "You are a stubbed agent.\n"
-                    "Always respond with exactly the following text and nothing else:\n\n"
-                    "Action happened."
-                ),
-                "tools": "",
-            },
-        ]
+        self.dict = {
+            "update-strategy" : {"explanation" : "Use to update the strategy.", "tool" : "Placeholder: Strategy updated"},
+            "read-strategy" : {"explanation" : "Use to read the strategy.", "tool" : "Placeholder: Strategy read"},
+            "action-taker" : {"explanation" : "Use to take an action.", "tool" : "Placeholder: Action happened"},
+        }
 
         # Agentic Initialization
         self.llm = LLMConnector.llm_connect(model=model)
-        self.deep_agent_prompt = AgentPromptLibrary.routing_agent_prompt()
+        self.agent_template = self._create_routing_prompt()
 
-        self.agent = create_deep_agent(
-            model=self.llm,
-            system_prompt=self.deep_agent_prompt,
-            subagents=self.subagents
-        )
+    def _create_routing_prompt(self):
+        rout_prompt = AgentPromptLibrary.routing_agent_prompt()
+        k = 1
+        for key, value in self.dict.items():
+            rout_prompt =rout_prompt + f'\n{str(k)}. {value["explanation"]} Answer "{key}"'
+            k = k + 1
+        return rout_prompt
+
+    def _take_action(self, tool_caller):
+        if tool_caller in self.dict:
+            print(self.dict[tool_caller]["tool"])
+
 
     def get_distribution(self, user_query):
-        input_state = {
-            "messages": [
-                ("human", user_query)
+        agent_template = ChatPromptTemplate.from_messages(
+            [
+                SystemMessagePromptTemplate(
+                    prompt=PromptTemplate(template=self.agent_template, input_variables=[]),
+                ),
+                HumanMessagePromptTemplate(
+                    prompt=PromptTemplate(template=user_query, input_variables=[]),
+                )
             ]
-        }
-
-        # for event in self.agent.stream(input_state):
-        #     print(event)
-
-        return self.agent.invoke(input_state)
+        )
+        agent_prompt = agent_template.invoke({})
+        answer = self.llm.invoke(agent_prompt)
+        self._take_action(answer.content)
 
 
 if __name__ == '__main__':
     agent = RoutingAgent()
 
-    queries = ['I want to update my strategy. If you find stock at 30 dollars buy.',
-             'What is the plan if my stock drops below 20%?',
-             'Buy the Tesla stock, as described by the plan.']
+    queries = [
+        'I want to update my strategy. If you find stock at 30 dollars buy.',
+        'What is the plan if my stock drops below 20%?',
+        'Buy the Tesla stock.'
+    ]
 
     for query in queries:
         agent.get_distribution(query)

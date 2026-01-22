@@ -39,7 +39,7 @@ Please provide the cypher query only, without any additional text or explanation
 
         routing_agent_prompt = (
             """
-You are a llm-agent manager.
-Use the suitable agent, according to user query and agent description.""")
+You are a useful assistant.
+Read the user query and decide which Agent to use, according to the description below.""")
 
         return routing_agent_prompt
