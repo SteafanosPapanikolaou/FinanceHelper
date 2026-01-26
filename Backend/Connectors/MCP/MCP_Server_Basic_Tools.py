@@ -58,6 +58,18 @@ async def strategy_to_knowledge_graph(user_summary: str, topic: str, ctx: Contex
 
     return 'Successfully created the Knowledge Graph'
 
+@app.tool()
+async def read_strategy(ctx: Context) -> str:
+    """Read the saved strategy from the knowledge graph. """
+
+    return 'Successfully read the strategy.'
+
+
+@app.tool()
+async def take_action(ctx: Context) -> str:
+    """Take action set by user. """
+
+    return 'Successfully action happened.'
 
 if __name__ == '__main__':
     app.run(transport="http", port=8000)
