@@ -1,6 +1,7 @@
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain.agents import create_agent
 from Backend.Connectors.LLM_Connector import LLMConnector
+from Backend.Connectors.prompt_lib.prompts_lib import AgentPromptLibrary
 import mcp
 import asyncio
 
@@ -21,7 +22,7 @@ class MCPClient:
             }
         })
         self.tools = None
-        self.prompt = 'You are a helpful assistant.'
+        self.prompt = AgentPromptLibrary.routing_agent_prompt()
         self.agent = None
 
     async def setup(self):
@@ -45,12 +46,16 @@ class MCPClient:
 async def main():
     client = MCPClient()
     await client.setup()
-    query = (
-        "Save to knowledge graph, my strategy. "
-        "Buy a house at 40% market value and sell it when people are buying stocks."
-    )
-    a = await client.generate_answer(query)
-    print(a)
+
+    queries = [
+        'I want to update my strategy. If you find stock at 30 dollars buy.',
+        'What is the plan if my stock drops below 20%?',
+        'Buy the Tesla stock.'
+    ]
+
+    for query in queries:
+        a = await client.generate_answer(query)
+        print(a)
 
 if __name__ == '__main__':
     asyncio.run(main())
