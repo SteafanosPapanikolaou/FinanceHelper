@@ -1,4 +1,5 @@
 import pandas as pd
+from Backend.Connectors.Binance_Toolset.Binance_Tools import BinanceDataFetcher
 
 def label_day(row):
     """Label single day as LONG / SHORT / NEUTRAL"""
@@ -120,7 +121,20 @@ def prepare_df(df, average_rolling: int = 5):
 
     return df
 
-def produce_conclusion(df, df_btc, average_rolling: int = 5,days_to_analyze: int = 7):
+def produce_conclusion(crypto, average_rolling: int = 5,days_to_analyze: int = 7):
+    fetcher = BinanceDataFetcher()
+    data_btc = fetcher.get_klines('BTCUSDT')
+    data = fetcher.get_klines('ETHUSDT')
+
+    columns = [
+            'Open Time', 'Open', 'High', 'Low', 'Close', 'Volume',
+            'Close Time', 'Quote Asset Volume', 'Number of Trades',
+            'Taker Buy Base Volume', 'Taker Buy Quote Volume', 'Ignore'
+        ]
+
+    df = pd.DataFrame(data, columns= columns)
+    df_btc = pd.DataFrame(data_btc, columns= columns)
+
     df = prepare_df(df, average_rolling=average_rolling)
     df_btc = prepare_df(df_btc, average_rolling=average_rolling)
 

@@ -1,8 +1,6 @@
 import requests
 import csv
 from datetime import datetime
-import pandas as pd
-from Backend.Connectors.Binance_Toolset.Strategy_Indication import produce_conclusion
 
 
 class BinanceDataFetcher:

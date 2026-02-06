@@ -33,7 +33,7 @@ Please provide the cypher query only, without any additional text or explanation
     @staticmethod
     def routing_agent_prompt():
         """
-        Prompt for chaining agent.
+        Prompt for routing agent.
         :return: str
         """
 
@@ -42,4 +42,24 @@ Please provide the cypher query only, without any additional text or explanation
 You are a useful assistant.
 Read the user query and decide which Agent to use, according to the description below.""")
 
+        return routing_agent_prompt
+
+    @staticmethod
+    def parallelizer_agent_prompt():
+        """
+        Prompts for parallelizer agent.
+        :return: dict[str]
+        """
+
+        routing_agent_prompt = {
+            "parallelizer":("""
+You are a useful assistant for cryptocurrency.
+Read the user query and answer only with the name of the crypto.
+
+User query: {query}
+"""),
+            "conclusion_agent": ("""
+You are a useful assistant for cryptocurrency.
+Read the name of the crypto and ."""),
+        }
         return routing_agent_prompt
