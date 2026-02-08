@@ -124,7 +124,7 @@ def prepare_df(df, average_rolling: int = 5):
 def produce_conclusion(crypto, average_rolling: int = 5,days_to_analyze: int = 7):
     fetcher = BinanceDataFetcher()
     data_btc = fetcher.get_klines('BTCUSDT')
-    data = fetcher.get_klines('ETHUSDT')
+    data = fetcher.get_klines(crypto)
 
     columns = [
             'Open Time', 'Open', 'High', 'Low', 'Close', 'Volume',

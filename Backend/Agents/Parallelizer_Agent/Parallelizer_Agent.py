@@ -1,6 +1,7 @@
 from Backend.Connectors.LLM_Connector import LLMConnector
 from Backend.Connectors.prompt_lib.prompts_lib import AgentPromptLibrary
 from Backend.Connectors.Binance_Toolset.Strategy_Indication import produce_conclusion
+from Backend.Connectors.Binance_Toolset.Binance_Tools import BinancePairCheck
 from Backend.Connectors.News_Fetcher.Google_news_fetch import get_crypto_news
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -17,7 +18,8 @@ def market_report(crypto: str) -> str:
     return get_crypto_news(crypto)
 
 def onchain_report(crypto: str) -> str:
-    return produce_conclusion(crypto)
+    match_maker = BinancePairCheck().check_binance_pair(crypto, 'tether')
+    return produce_conclusion(match_maker)
 
 class ParallelizerAgent:
     def __init__(self,q, model='qwen3:1.7b'):
@@ -45,6 +47,12 @@ class ParallelizerAgent:
             onchain=onchain_runnable
         )
 
+        summary_prompt = ChatPromptTemplate.from_template(
+            "Summarize and give a clear conclusion from this report:\n\n{report}"
+        )
+
+        summary_chain = summary_prompt | self.llm
+
         full_pipeline = (
                 {"query": RunnableLambda(lambda x: x)}
                 | log_step("USER QUERY")
@@ -53,16 +61,31 @@ class ParallelizerAgent:
                 | extract_text
                 | log_step("EXTRACTED TEXT")
                 | parallel_tools
-                | log_step("TOOL Answers"))
+                | log_step("TOOL Answers")
+                | {
+                    "market_conclusion": RunnableLambda(
+                        lambda x: summary_chain.invoke({"report": x["market"]})
+                    ),
+                    "onchain_conclusion": RunnableLambda(
+                        lambda x: summary_chain.invoke({"report": x["onchain"]})
+                    )
+                }
+                | log_step("FINAL AGENT INPUT")
+                | RunnableLambda(lambda x: f"""
+                    FINAL SYNTHESIS:
+                    Market view: {x['market_conclusion']}
+                    On-chain view: {x['onchain_conclusion']}
+                    """)
+        )
 
         result = full_pipeline.invoke(
             q
         )
+        print(result)
+
+        return result
 
 if __name__ == '__main__':
     q = 'What is the trend on the Ethereum?'
-    agent = ParallelizerAgent(q= q)
-
-    # user_q = ('Buy if the current price is below open price. Sell when you spot 10% increase on the stock. Cut loss when'
-    #           'you spot price of stock is below 25%.')
-    # agent.create_kg(query=user_q)
+    agent = ParallelizerAgent(q=q)
+    print(agent)
