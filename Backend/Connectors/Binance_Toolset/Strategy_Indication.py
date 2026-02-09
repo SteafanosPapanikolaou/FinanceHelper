@@ -126,14 +126,14 @@ def produce_conclusion(crypto, average_rolling: int = 5,days_to_analyze: int = 7
     data_btc = fetcher.get_klines('BTCUSDT')
     data = fetcher.get_klines(crypto)
 
-    columns = [
+    headers = [
             'Open Time', 'Open', 'High', 'Low', 'Close', 'Volume',
             'Close Time', 'Quote Asset Volume', 'Number of Trades',
             'Taker Buy Base Volume', 'Taker Buy Quote Volume', 'Ignore'
         ]
 
-    df = pd.DataFrame(data, columns= columns)
-    df_btc = pd.DataFrame(data_btc, columns= columns)
+    df = pd.DataFrame(data, columns=headers)
+    df_btc = pd.DataFrame(data_btc, columns=headers)
 
     df = prepare_df(df, average_rolling=average_rolling)
     df_btc = prepare_df(df_btc, average_rolling=average_rolling)

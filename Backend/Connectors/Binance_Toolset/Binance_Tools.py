@@ -4,6 +4,16 @@ from datetime import datetime
 from fuzzywuzzy import process
 
 
+def find_best_match(name, choices, min_score=70):
+    name = name.lower()
+    best_match, score = process.extractOne(name, choices)
+
+    if score < min_score:
+        return None  # Not found
+
+    return best_match
+
+
 class BinanceDataFetcher:
     def __init__(self):
         self.base_url = 'https://api.binance.com/api/v3/klines'
@@ -57,19 +67,10 @@ class BinancePairCheck():
             for c in coingecko
         }
 
-    def find_best_match(self, name, choices, min_score=70):
-        name = name.lower()
-        best_match, score = process.extractOne(name, choices)
-
-        if score < min_score:
-            return None  # Not found
-
-        return best_match
-
     def check_binance_pair(self, coin_a, coin_b):
         # Try to correct names
-        name_a = self.find_best_match(coin_a, self.name_to_symbol.keys())
-        name_b = self.find_best_match(coin_b, self.name_to_symbol.keys())
+        name_a = find_best_match(coin_a, self.name_to_symbol.keys())
+        name_b = find_best_match(coin_b, self.name_to_symbol.keys())
 
         if not name_a or not name_b:
             return f"❌ One or both coins not recognized: {coin_a}, {coin_b}"
@@ -78,12 +79,12 @@ class BinancePairCheck():
         ticker_a = self.name_to_symbol[name_a]
         ticker_b = self.name_to_symbol[name_b]
 
-        pair1 = ticker_a + ticker_b  # e.g. ETHBTC
-        pair2 = ticker_b + ticker_a  # e.g. BTCETH
+        pair1 = ticker_a + ticker_b
+        pair2 = ticker_b + ticker_a
 
         if pair1 in self.all_pairs:
             return pair1
-        elif pair2 in self.all_pairs:
+        if pair2 in self.all_pairs:
             return pair2
 
         return f"❌ No direct trading pair exists between {ticker_a} and {ticker_b}"
@@ -95,5 +96,3 @@ if __name__ == "__main__":
     fetcher.save_to_csv(data)
 
     pairer = BinancePairCheck()
-    print(pairer.check_binance_pair("ethereum", "tether"))
-    print(pairer.check_binance_pair("etherium", "bitkoin"))

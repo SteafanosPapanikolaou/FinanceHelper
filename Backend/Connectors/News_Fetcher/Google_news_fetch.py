@@ -22,11 +22,9 @@ def get_crypto_news(query: str, max_items: int = 5):
     for entry in feed.entries[:max_items]:
         articles.append({
             "title": entry.title,
-            "summary": clean_html(getattr(entry, "summary", "")),
-            "link": entry.link,
-            "published": getattr(entry, "published", None),
+            # "summary": clean_html(getattr(entry, "summary", "")),
+            # "link": entry.link,
+            # "published": getattr(entry, "published", None),
         })
 
     return articles
-
-news = get_crypto_news("BTC OR Bitcoin OR BTCUSDT")

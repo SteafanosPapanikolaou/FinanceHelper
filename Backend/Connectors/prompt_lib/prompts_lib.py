@@ -58,8 +58,11 @@ Read the user query and answer only with the name of the crypto.
 
 User query: {query}
 """),
-            "conclusion_agent": ("""
+            "on_chain": ("""
 You are a useful assistant for cryptocurrency.
-Read the name of the crypto and ."""),
+Summarize and give a clear conclusion from this report:\n\n{report}"""),
+            "market_conclusion": ("""
+You are a useful assistant for cryptocurrency.
+Read the title from the articles below and give a clear sentiment from the news:\n\n{news}"""),
         }
         return routing_agent_prompt
