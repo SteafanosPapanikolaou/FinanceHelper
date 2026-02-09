@@ -21,13 +21,13 @@ def onchain_report(crypto: str) -> str:
     match_maker = BinancePairCheck().check_binance_pair(crypto, 'tether')
     return produce_conclusion(match_maker)
 
-class ParallelizerAgent:
+class QuickMarketAnalysisAgent:
     def __init__(self,model='qwen3:1.7b'):
 
         self.llm = LLMConnector.llm_connect(model=model)
 
-        prompts = AgentPromptLibrary.parallelizer_agent_prompt()
-        self.parallelizer_template = prompts["parallelizer"]
+        prompts = AgentPromptLibrary.quick_market_recap_prompt()
+        self.parallelizer_template = prompts["extract_crypto"]
         market_conclusion_template = prompts["market_conclusion"]
         on_chain_conclusion_template = prompts["on_chain"]
 
@@ -55,13 +55,9 @@ class ParallelizerAgent:
 
         self.full_pipeline = (
                 {"query": RunnableLambda(lambda x: x)}
-                | log_step("USER QUERY")
                 | extract_crypto_chain
-                | log_step("EXTRACTED CRYPTO")
                 | extract_text
-                | log_step("EXTRACTED TEXT")
                 | parallel_tools
-                | log_step("TOOL Answers")
                 | {
                     "market_conclusion": RunnableLambda(
                         lambda x: market_chain.invoke({"news": x["onchain"]})
@@ -70,7 +66,6 @@ class ParallelizerAgent:
                         lambda x: on_chain_chain.invoke({"report": x["market"]})
                     )
                 }
-                | log_step("FINAL AGENT INPUT")
                 | RunnableLambda(lambda x: f"""
 FINAL SYNTHESIS:
 Market view: {x['market_conclusion'].content}
@@ -87,5 +82,5 @@ Market view: {x['market_conclusion'].content}
 
 if __name__ == '__main__':
     q = 'What is the trend on the Ethereum?'
-    agent = ParallelizerAgent()
+    agent = QuickMarketAnalysisAgent()
     agent.quick_market_recap(q)

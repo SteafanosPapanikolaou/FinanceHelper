@@ -1,12 +1,12 @@
 class AgentPromptLibrary:
     @staticmethod
-    def chaining_agent_prompt():
+    def export_kg_agent_prompt():
         """
         Prompt for chaining agent.
         :return: str
         """
 
-        chaining_agent_prompt = (
+        export_kg_agent_prompt = (
             """
 You are a Neo4j Graph creator. Read the Objectives and the Topic to create the Graph.
 
@@ -28,31 +28,31 @@ Please provide the cypher query only, without any additional text or explanation
 **Topic**
 {topic}""")
 
-        return chaining_agent_prompt
+        return export_kg_agent_prompt
 
     @staticmethod
-    def routing_agent_prompt():
+    def distribute_query_agent_prompt():
         """
         Prompt for routing agent.
         :return: str
         """
 
-        routing_agent_prompt = (
+        distribute_query_agent_prompt = (
             """
 You are a useful assistant.
 Read the user query and decide which Agent to use, according to the description below.""")
 
-        return routing_agent_prompt
+        return distribute_query_agent_prompt
 
     @staticmethod
-    def parallelizer_agent_prompt():
+    def quick_market_recap_prompt():
         """
         Prompts for parallelizer agent.
         :return: dict[str]
         """
 
-        routing_agent_prompt = {
-            "parallelizer":("""
+        quick_market_recap_prompt = {
+            "extract_crypto":("""
 You are a useful assistant for cryptocurrency.
 Read the user query and answer only with the name of the crypto.
 
@@ -65,4 +65,4 @@ Summarize and give a clear conclusion from this report:\n\n{report}"""),
 You are a useful assistant for cryptocurrency.
 Read the title from the articles below and give a clear sentiment from the news:\n\n{news}"""),
         }
-        return routing_agent_prompt
+        return quick_market_recap_prompt

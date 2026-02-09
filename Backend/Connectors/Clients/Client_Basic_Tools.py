@@ -22,7 +22,7 @@ class MCPClient:
             }
         })
         self.tools = None
-        self.prompt = AgentPromptLibrary.routing_agent_prompt()
+        self.prompt = AgentPromptLibrary.distribute_query_agent_prompt()
         self.agent = None
 
     async def setup(self):

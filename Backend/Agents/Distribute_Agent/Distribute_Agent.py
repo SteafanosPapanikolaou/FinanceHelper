@@ -5,7 +5,7 @@ from langchain_core.prompts import (ChatPromptTemplate, SystemMessagePromptTempl
                                     HumanMessagePromptTemplate)
 
 
-class RoutingAgent:
+class DistributeAgent:
     def __init__(self, model='qwen3:4b'):
 
         self.dict = {
@@ -19,7 +19,7 @@ class RoutingAgent:
         self.agent_template = self._create_routing_prompt()
 
     def _create_routing_prompt(self):
-        rout_prompt = AgentPromptLibrary.routing_agent_prompt()
+        rout_prompt = AgentPromptLibrary.distribute_query_agent_prompt()
         k = 1
         for key, value in self.dict.items():
             rout_prompt =rout_prompt + f'\n{str(k)}. {value["explanation"]} Answer "{key}"'
@@ -48,7 +48,7 @@ class RoutingAgent:
 
 
 if __name__ == '__main__':
-    agent = RoutingAgent()
+    agent = DistributeAgent()
 
     queries = [
         'I want to update my strategy. If you find stock at 30 dollars buy.',

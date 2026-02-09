@@ -3,7 +3,7 @@ from fastmcp.client.sampling import SamplingMessage, SamplingParams, RequestCont
 from langchain_core.prompts import PromptTemplate
 from Backend.Connectors.LLM_Connector import (LLMConnector)
 
-from Backend.Agents.Chaining_Agent.Chaining_Agent import ChainingAgent
+from Backend.Agents.Strategy_Saver.Stategy_Saver_Agent import StrategySaverAgent
 
 
 async def basic_sampling_handler(messages: list[SamplingMessage], params: SamplingParams, context: RequestContext):
@@ -53,7 +53,7 @@ async def strategy_to_knowledge_graph(user_summary: str, topic: str, ctx: Contex
             topic = answer.data
 
     # Use of agent.
-    sub_agent_chainer = ChainingAgent(topic=topic)
+    sub_agent_chainer = StrategySaverAgent(topic=topic)
     sub_agent_chainer.create_kg(query=user_summary)
 
     return 'Successfully created the Knowledge Graph'

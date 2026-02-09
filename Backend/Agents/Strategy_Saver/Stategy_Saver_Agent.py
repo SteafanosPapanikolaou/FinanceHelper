@@ -4,7 +4,7 @@ from Backend.Connectors.prompt_lib.prompts_lib import AgentPromptLibrary
 from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, PromptTemplate, HumanMessagePromptTemplate
 
 
-class ChainingAgent:
+class StrategySaverAgent:
     def __init__(self, credentials='', model='qwen3:4b', topic='Stock Market Strategy'):
 
         # Neo4j initialization
@@ -16,7 +16,7 @@ class ChainingAgent:
 
         # Agentic Initialization
         self.llm = LLMConnector.llm_connect(model=model)
-        self.agent_template = AgentPromptLibrary.chaining_agent_prompt()
+        self.agent_template = AgentPromptLibrary.export_kg_agent_prompt()
 
         # Topic Initialization
         self.topic = topic
@@ -49,7 +49,7 @@ class ChainingAgent:
 
 
 if __name__ == '__main__':
-    agent = ChainingAgent()
+    agent = StrategySaverAgent()
     user_q = ('Buy if the current price is below open price. Sell when you spot 10% increase on the stock. Cut loss when'
               'you spot price of stock is below 25%.')
     agent.create_kg(query=user_q)
