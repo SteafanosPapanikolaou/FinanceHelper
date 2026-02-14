@@ -11,7 +11,7 @@ async def elicitation_callbak(context, params):
 
 class MCPClient:
     def __init__(self):
-        self.llm = LLMConnector.llm_connect(model='qwen3:4b')
+        self.llm = LLMConnector.llm_connect(model='qwen3:1.7b')
         self.client = MultiServerMCPClient({
             "main_server": {
                 "url": "http://localhost:8000/mcp",
@@ -48,14 +48,15 @@ async def main():
     await client.setup()
 
     queries = [
-        'I want to update my strategy. If you find stock at 30 dollars buy.',
-        'What is the plan if my stock drops below 20%?',
-        'Buy the Tesla stock.'
+        # 'I want to update my strategy. If you find stock at 30 dollars buy.',
+        # 'What is the plan if my stock drops below 20%?',
+        # 'Buy the Tesla stock.'
+        'Give me a report from the articles for the binance Coin',
     ]
 
     for query in queries:
         a = await client.generate_answer(query)
-        print(a)
+        # print(a)
 
 if __name__ == '__main__':
     asyncio.run(main())

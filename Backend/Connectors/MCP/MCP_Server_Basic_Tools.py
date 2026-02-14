@@ -4,6 +4,7 @@ from langchain_core.prompts import PromptTemplate
 from Backend.Connectors.LLM_Connector import (LLMConnector)
 
 from Backend.Agents.Strategy_Saver.Stategy_Saver_Agent import StrategySaverAgent
+from Backend.Connectors.Clients.Client_Analysis_Market import MCPClientMarketAnalysis
 
 
 async def basic_sampling_handler(messages: list[SamplingMessage], params: SamplingParams, context: RequestContext):
@@ -70,6 +71,18 @@ async def take_action(ctx: Context) -> str:
     """Take action set by user. """
 
     return 'Successfully action happened.'
+
+@app.tool()
+async def quick_market_analysis(user_query: str, ctx: Context) -> str:
+    """Analyze the market.
+    user_query: Pass the user query as is."""
+
+    analysis_client = MCPClientMarketAnalysis()
+    await analysis_client.setup()
+
+    answer = await analysis_client.generate_answer(query=user_query)
+    return answer
+
 
 if __name__ == '__main__':
     app.run(transport="http", port=8000)
