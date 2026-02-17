@@ -10,7 +10,7 @@ from Backend.Connectors.Clients.Client_Analysis_Market import MCPClientMarketAna
 async def basic_sampling_handler(messages: list[SamplingMessage], params: SamplingParams, context: RequestContext):
     system_prompt = params.systemPrompt or "You are a helpful assistant."
     llm = LLMConnector(model='qwen3:4b')
-    qa_prompt = PromptTemplate(template=system_prompt)
+    qa_prompt = PromptTemplate(template=system_prompt, input_variables= [])
 
     qa_chain = qa_prompt | llm
 
@@ -27,7 +27,6 @@ async def strategy_to_knowledge_graph(user_summary: str, topic: str, ctx: Contex
     user_summary: Summarize the user strategy.
     topic: If explicitly stated describe the topic | '' """
 
-    # Handle user_summary
     if not user_summary:
         answer = await ctx.elicit(
             message='Please describe the strategy you want to save at the knowledge graph.',

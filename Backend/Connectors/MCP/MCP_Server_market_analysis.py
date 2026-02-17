@@ -19,19 +19,24 @@ def onchain_report(crypto: str) -> str:
 
 async def basic_sampling_handler(messages: list[SamplingMessage], params: SamplingParams, context: RequestContext):
     system_prompt = params.systemPrompt or "You are a helpful assistant."
-    llm = LLMConnector(model='qwen3:4b')
-    qa_prompt = PromptTemplate(template=system_prompt)
+    llm = LLMConnector(model='qwen3:1.7b')
+    qa_prompt = PromptTemplate(template=system_prompt, input_variables= [])
 
     qa_chain = qa_prompt | llm
 
     result = qa_chain.invoke({"message": system_prompt})
 
-    return result
+    return result.content
 
 app = FastMCP("market_analysis_server", sampling_handler=basic_sampling_handler)
 
 
-@app.tool()
+@app.tool(
+    meta = {
+        "raw_output": True,
+        "report_title": "Trending Articles",
+    }
+)
 async def article_report_creation(crypto_name: str, ctx: Context, number_of_articles: int = 5) -> str:
     """Creates a report, based on most trending articles.
     crypto_name: Cryptocurrency of interest.
@@ -39,9 +44,22 @@ async def article_report_creation(crypto_name: str, ctx: Context, number_of_arti
 
     report= market_report(crypto_name)
 
+    answer = await ctx.sample("",
+                              system_prompt=f"Read the Article titles."
+                                            f"Crete a brief report, focusing mainly on the general sentiment."
+                                            f"Article titles:\n{report}", )
+
+    print(answer.text)
+    report = answer.text
+
     return report
 
-@app.tool()
+@app.tool(
+    meta = {
+            "raw_output": True,
+            "report_title": "On-Chain Analysis",
+        }
+)
 async def on_chain_report(crypto_name: str, ctx: Context) -> str:
     """Creates a report, from on chain analysis.
     crypto_name: Cryptocurrency of interest."""

@@ -18,45 +18,37 @@ class MCPClientMarketAnalysis:
                        'Respond in plain text only.')
         self.agent = None
 
-        self.RAW_TOOLS = {
-            "article_report_creation",
-        }
+        self.RAW_TOOLS = None
+        self.RAW_TITLES = {}
 
     async def setup(self):
         self.tools = await self.client.get_tools()
 
+        self.RAW_TOOLS = set()
+
+        for tool in self.tools:
+            if getattr(tool, "metadata", {}).get("_meta").get("raw_output") is True:
+                self.RAW_TOOLS.add(tool.name)
+                self.RAW_TITLES.update({tool.name: tool.metadata.get("_meta").get("report_title")})
+
         self.agent = create_agent(model=self.llm, tools=self.tools, system_prompt=self.prompt)
 
-
-    async def safe_invoke(self, agent, input_data):
-        result = await agent.ainvoke(input_data)
-
-        # Check if tools were used
-        steps = result.get("intermediate_steps", [])
-
-        if not steps:
-            return result["output"]
-
-        # Last tool used
-        last_tool, last_tool_output = steps[-1]
-
-        if last_tool.tool in self.RAW_TOOLS:
-            # 🔥 RETURN RAW TOOL OUTPUT
-            return last_tool_output
-
-        return result["output"]
-
     async def generate_answer(self, query):
-        agent_answer = await self.agent.ainvoke({
+        raw_outputs = []
+
+        async for event in self.agent.astream_events({
             "messages": [{"role": "user", "content": query}],
-        })
-        return agent_answer['messages'][-1].content
-        # async for event in self.agent.astream({
-        #     "messages": [{"role": "user", "content": query}],
-        # }):
-        #     print(event)
-        #
-        # return event
+        },
+                version="v2"):
+
+            if event["event"] == "on_tool_end":
+                tool_name = event["name"]
+
+                if tool_name in self.RAW_TOOLS:
+                    raw_outputs.append(self.RAW_TITLES[tool_name] +'\n\n' +(event["data"]["output"].content[0]['text']))
+
+            if event["event"] == "on_chat_model_start" and raw_outputs:
+                return "\n-----------------\n".join(raw_outputs)
 
 
 async def main():
@@ -64,8 +56,8 @@ async def main():
     await client.setup()
 
     queries = [
-        # 'Give me a market report on Etherium Coin.',
-        # 'Give me a on chain report for the solana Coin',
+        'Give me a market report on Etherium Coin, both from on chain and articles.',
+        'Give me a on chain report for the solana Coin',
         'Give me a report from the articles for the binance Coin',
     ]
 
