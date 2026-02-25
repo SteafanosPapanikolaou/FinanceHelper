@@ -12,6 +12,6 @@ class LLMConnector(ChatOllama):
         :return:
         """
 
-        llm = ChatOllama(model=model, base_url=base_url, temperature=0)
+        llm = ChatOllama(model=model, base_url=base_url, temperature=0, num_ctx=1024)
 
         return llm
