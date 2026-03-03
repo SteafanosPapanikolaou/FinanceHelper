@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from langchain.agents import create_agent
 from Backend.Connectors.LLM_Connector import LLMConnector
+from Backend.Connectors.prompt_lib.prompts_lib import AgentPromptLibrary
 from typing import Any, Literal
 from datetime import datetime
 
@@ -53,18 +54,18 @@ user_input = ("When we see bad news for BTC and the price is lower than 58k. "
              "Sell when the price of BTC is 10% on the upside or more, but remember to sell the"
              "position out if price falls more than 15%.")
 
-# result = agent.invoke({
-#     "messages": [{"role": "user", "content": user_input}],
-# })
+result = agent.invoke({
+    "messages": [{"role": "user", "content": user_input}],
+})
 
-# plan = result["structured_response"].model_dump()
+plan = result["structured_response"].model_dump()
 
-# for key, value in plan.items():
-#     if key in state:
-#         state[key].value = value
+for key, value in plan.items():
+    if key in state:
+        state[key].value = value
 
-# for i in state.keys():
-#     print(i,":", state[i].value)
+for i in state.keys():
+    print(i,":", state[i].value)
 
 state["entry_condition"].value = None
 state["entry_condition"].value = ("entry_condition: "
@@ -171,3 +172,45 @@ Return null
 for i in state.keys():
     print(state[i])
     print()
+
+class TradePlanEvaluatorAgent:
+    def __init__(self, model='qwen3:1.7b'):
+
+        self.llm = LLMConnector.llm_connect(model=model)
+
+        self.state = {
+            "entry_condition": FieldState(completeness_question="Buy when news are positive?"),
+            "entry_point": FieldState(completeness_question="Buy in at the current price?"),
+            "stop_loss": FieldState(completeness_question="10% of the entry point?"),
+            "take_profit": FieldState(completeness_question="15% of the entry point?"),
+            "position_size": FieldState(completeness_question="2% of portofolio?"),
+        }
+
+        prompts = AgentPromptLibrary.trade_plan_evaluator_prompt()
+        self.extract_from_conversation_template = prompts["extract_from_conversation"]
+        market_conclusion_template = prompts["market_conclusion"]
+        on_chain_conclusion_template = prompts["on_chain"]
+
+        self.extraction_agent = create_agent(
+            model=self.llm,
+            response_format=TradingPlan,
+            system_prompt=self.extract_from_conversation_template
+        )
+
+        result = self.extraction_agent.invoke({
+            "messages": [{"role": "user", "content": user_input}],
+        })
+
+        plan = result["structured_response"].model_dump()
+
+        for key, value in plan.items():
+            if key in state:
+                state[key].value = value
+
+
+if __name__ == '__main__':
+    user_input = ("When we see bad news for BTC and the price is lower than 58k. "
+             "Use less than 2% of the portofolio."
+             "Sell when the price of BTC is 10% on the upside or more, but remember to sell the"
+             "position out if price falls more than 15%.")
+    agent = TradePlanEvaluatorAgent()

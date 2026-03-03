@@ -66,3 +66,31 @@ You are a useful assistant for cryptocurrency.
 Read the title from the articles below and give a clear sentiment from the news:\n\n{news}"""),
         }
         return quick_market_recap_prompt
+
+    @staticmethod
+    def trade_plan_evaluator_prompt():
+        """
+        Prompts for parallelizer agent.
+        :return: dict[str]
+        """
+
+        trade_plan_evaluator_prompt = {
+            "extract_from_conversation": ("""
+You are a financial information extraction system.
+
+Extract ONLY explicitly stated values.
+
+If the value is missing, output null.
+
+Never infer or guess.
+
+Missing means null."""
+                                          ),
+            "on_chain": ("""
+    You are a useful assistant for cryptocurrency.
+    Summarize and give a clear conclusion from this report:\n\n{report}"""),
+            "market_conclusion": ("""
+    You are a useful assistant for cryptocurrency.
+    Read the title from the articles below and give a clear sentiment from the news:\n\n{news}"""),
+        }
+        return trade_plan_evaluator_prompt
