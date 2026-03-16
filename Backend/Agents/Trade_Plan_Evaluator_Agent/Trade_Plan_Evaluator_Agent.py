@@ -16,8 +16,9 @@ class State(TypedDict):
     completeness_iteration: int
     correctness_confidence: float
     correctness_question: str
+    correctness_value: str
     correctness_iteration: int
-    output: str
+    question_to_user: str
 
 
 class FieldState(BaseModel):
@@ -142,6 +143,7 @@ class TradingPlan(BaseModel):
 #
 #
 class CheckCorrectnessPlan(BaseModel):
+    fixed_value: str | None = Field(default=None, description="Fixed value.")
     clarification_question: str | None = Field(default=None, description="Clarification Question")
     correctness_confidence: float = Field(default=0.0, description="Evaluation confidence")
 #
@@ -190,8 +192,8 @@ class CheckCorrectnessPlan(BaseModel):
 class TradePlanEvaluatorAgent:
     def __init__(self, model='qwen3:1.7b'):
 
-        self.llm_extractor = LLMConnector.llm_connect(model=model)
-        self.llm_check_lvl1 = LLMConnector.llm_connect(model='qwen3:1.7b')
+        self.llm_extractor = LLMConnector.llm_connect(model='qwen3:0.8b')
+        self.llm_check_lvl1 = LLMConnector.llm_connect(model=model)
         self.llm_check_lvl2 = LLMConnector.llm_connect(model='qwen3:4b')
         self.memory = MemorySaver()
 
@@ -279,10 +281,10 @@ class TradePlanEvaluatorAgent:
             """
             result = self.ask_completeness_question_agent.invoke(
                 {"messages": [{"role": "user", "content": ask_completeness_question_prompt}]},)
-            return {"output": result.content}
+            return {"question_to_user": result.content}
 
         def suggest_question(state: State):
-            return {"output": self.state[state["subject"]].completeness_question}
+            return {"question_to_user": self.state[state["subject"]].completeness_question}
 
         def correctness_evaluator(state: State):
             correctness_prompt = f"""
@@ -292,7 +294,7 @@ class TradePlanEvaluatorAgent:
             User input:
             {state["input"]}
 
-            Extracted output:
+            Extracted question_to_user:
             {state["value"]}
             """
             result = self.correctness_evaluator_agent.invoke(
@@ -300,19 +302,23 @@ class TradePlanEvaluatorAgent:
             return {
                 "correctness_confidence": result["structured_response"].correctness_confidence,
                 "correctness_question": result["structured_response"].clarification_question,
+                "correctness_value": result["structured_response"].fixed_value,
                 "correctness_iteration": state["correctness_iteration"]+1,
             }
 
         def route_correctness(state: State) -> str:
-            if state["correctness_confidence"] <80.0 and state["correctness_iteration"]<3:
-                return "AskCorrectnessQuestion"
+            if state["correctness_iteration"]<3:
+                if state["correctness_confidence"] <80.0 and state["correctness_value"] is not None:
+                    return "FixValue"
+                if state["correctness_confidence"] <60.0:
+                    return "AskCorrectnessQuestion"
             return "Pass"
 
-        def ask_correctness_question(state: State):
-            return {"output": state["correctness_question"]}
+        def fix_value(state: State):
+            return {"value": state["correctness_value"]}
 
-        def aggregator():
-            return {"output": "result.content"}
+        def ask_correctness_question(state: State):
+            return {"question_to_user": state["correctness_question"]}
 
         # Build workflow
         router_builder = StateGraph(State)
@@ -323,8 +329,8 @@ class TradePlanEvaluatorAgent:
         router_builder.add_node("AskCompletenessQuestion", ask_completeness_question)
         router_builder.add_node("SuggestQuestion", suggest_question)
         router_builder.add_node("CorrectnessEvaluator", correctness_evaluator)
+        router_builder.add_node("FixValue", fix_value)
         router_builder.add_node("AskCorrectnessQuestion", ask_correctness_question)
-        router_builder.add_node("aggregator", aggregator)
 
         # Add edges to connect nodes
         router_builder.add_edge(START, "route_completeness")
@@ -343,16 +349,17 @@ class TradePlanEvaluatorAgent:
                 "Pass": "route_completeness"
             },
         )
-        router_builder.add_edge("AskCompletenessQuestion", "aggregator")
-        router_builder.add_edge("SuggestQuestion", "aggregator")
+        router_builder.add_edge("AskCompletenessQuestion", END)
+        router_builder.add_edge("SuggestQuestion", END)
         router_builder.add_conditional_edges(
             "CorrectnessEvaluator", route_correctness,
             {
+                "FixValue": "FixValue",
                 "AskCorrectnessQuestion": "AskCorrectnessQuestion",
                 "Pass": END
             })
-        router_builder.add_edge("AskCorrectnessQuestion", "aggregator")
-        router_builder.add_edge("aggregator", END)
+        router_builder.add_edge("FixValue", END)
+        router_builder.add_edge("AskCorrectnessQuestion", END)
 
         # Compile
         chain = router_builder.compile()

@@ -112,10 +112,12 @@ You are going to evaluate the Extracted output from the User input for the Subje
 Output an Evaluation confidence from 0 to 100.
 
 If the Output less than 80.
-Create a Clarification Question for the user.
+Return the Fixed Value
+Return null for Clarification Question.
 
-If the Output more than 80.
-Return null
+If the Output less than 60.
+Create a Clarification Question for the user.
+Return null for the Fixed Value.
 """),
         }
         return trade_plan_evaluator_prompt
