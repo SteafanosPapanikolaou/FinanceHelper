@@ -24,10 +24,6 @@ class State(TypedDict):
 class FieldState(BaseModel):
     value: Any = None
     completeness_question: str
-    correctness_confidence: float = 0.0
-    source: Literal["user", "inferred", "corrected"] = None
-    timestamp: datetime = None
-    iteration: int = 0
 
 
 class TradingPlan(BaseModel):
@@ -192,7 +188,7 @@ class CheckCorrectnessPlan(BaseModel):
 class TradePlanEvaluatorAgent:
     def __init__(self, model='qwen3:1.7b'):
 
-        self.llm_extractor = LLMConnector.llm_connect(model='qwen3:0.8b')
+        self.llm_extractor = LLMConnector.llm_connect(model='qwen3:0.6b')
         self.llm_check_lvl1 = LLMConnector.llm_connect(model=model)
         self.llm_check_lvl2 = LLMConnector.llm_connect(model='qwen3:4b')
         self.memory = MemorySaver()
@@ -234,7 +230,7 @@ class TradePlanEvaluatorAgent:
                         system_prompt=self.correctness_evaluation_template
                     )
 
-        self._langgraph_agent()
+        example = self._langgraph_agent()
 
         # result = self.extraction_agent.invoke({
         #     "messages": [{"role": "user", "content": user_input}],
@@ -245,19 +241,51 @@ class TradePlanEvaluatorAgent:
         # for key, value in plan.items():
         #     if key in self.state:
         #         self.state[key].value = value
+        #         print(self.state[key])
+
+        print(self.state["entry_condition"].value)
+
+        initial_state = {
+            "input": user_input,
+            "subject": "entry_condition",
+            # "value": "Buy when news are positive",
+            "value": None,
+            "completeness_iteration": 0,
+            "correctness_confidence": 0.0,
+            "correctness_question": "",
+            "correctness_value": "",
+            "correctness_iteration": 0,
+            "question_to_user": ""
+        }
+
+        r = example.invoke(initial_state)
+
+        self.state["entry_condition"].value = r["value"]
+        print(self.state["entry_condition"].value)
+
+
+        # print(initial_state)
 
     def _langgraph_agent(self):
-        def route_completeness(state: State) -> str:
+        def router_for_completeness(state: State) -> str:
             if state["value"] is None and state["completeness_iteration"]<3:
+                print('Extract Info')
                 return "ExtractSingleInformation"
-            return "Pass"
+            print('Info extracted')
+            return "Pass_to_Correctness"
+
+        def route_completeness(state: State) -> dict:
+            return {}
 
         def completeness_inner_route(state: State):
             if state["value"]:
-                return "Pass"
+                print('Starting Completness')
+                return "Pass_to_completness"
 
             if state["completeness_iteration"]<2:
+                print('LLM ask q')
                 return "AskCompletenessQuestion"
+            print('Suggest q')
             return "SuggestQuestion"
 
         def extract_single_information(state: State):
@@ -270,20 +298,23 @@ class TradePlanEvaluatorAgent:
             result = self.llm_check_lvl1_agent.invoke(
                 {"messages": [{"role": "user", "content": reflection_prompt}]},
             )
+            # print(result)
             return {
-                "value": result.content,
+                "value": result['messages'][-1].content,
                 "completeness_iteration": state["completeness_iteration"]+1
                     }
 
         def ask_completeness_question(state: State):
+            print('Creating a completness question')
             ask_completeness_question_prompt = f"""
             Subject: {state["subject"]}
             """
             result = self.ask_completeness_question_agent.invoke(
                 {"messages": [{"role": "user", "content": ask_completeness_question_prompt}]},)
-            return {"question_to_user": result.content}
+            return {"question_to_user": result['messages'][-1].content}
 
         def suggest_question(state: State):
+            print('Using the suggested q')
             return {"question_to_user": self.state[state["subject"]].completeness_question}
 
         def correctness_evaluator(state: State):
@@ -294,11 +325,12 @@ class TradePlanEvaluatorAgent:
             User input:
             {state["input"]}
 
-            Extracted question_to_user:
+            Extracted value:
             {state["value"]}
             """
             result = self.correctness_evaluator_agent.invoke(
                 {"messages": [{"role": "user", "content": correctness_prompt}]}, )
+            print(result["structured_response"])
             return {
                 "correctness_confidence": result["structured_response"].correctness_confidence,
                 "correctness_question": result["structured_response"].clarification_question,
@@ -307,11 +339,11 @@ class TradePlanEvaluatorAgent:
             }
 
         def route_correctness(state: State) -> str:
-            if state["correctness_iteration"]<3:
-                if state["correctness_confidence"] <80.0 and state["correctness_value"] is not None:
-                    return "FixValue"
-                if state["correctness_confidence"] <60.0:
+            if state["correctness_iteration"] < 3:
+                if state["correctness_confidence"] < 60.0 and state["correctness_question"] is not None:
                     return "AskCorrectnessQuestion"
+                if state["correctness_confidence"] < 80.0 and state["correctness_value"] is not None:
+                    return "FixValue"
             return "Pass"
 
         def fix_value(state: State):
@@ -335,10 +367,10 @@ class TradePlanEvaluatorAgent:
         # Add edges to connect nodes
         router_builder.add_edge(START, "route_completeness")
         router_builder.add_conditional_edges(
-            "route_completeness", route_completeness,
+            "route_completeness", router_for_completeness,
             {
                 "ExtractSingleInformation": "ExtractSingleInformation",
-                "Pass": "CorrectnessEvaluator"
+                "Pass_to_Correctness": "CorrectnessEvaluator"
             },
         )
         router_builder.add_conditional_edges(
@@ -346,7 +378,7 @@ class TradePlanEvaluatorAgent:
             {
                 "AskCompletenessQuestion": "AskCompletenessQuestion",
                 "SuggestQuestion": "SuggestQuestion",
-                "Pass": "route_completeness"
+                "Pass_to_completness": "route_completeness"
             },
         )
         router_builder.add_edge("AskCompletenessQuestion", END)
@@ -370,6 +402,8 @@ class TradePlanEvaluatorAgent:
             f.write(png_data)
 
         print("Workflow image saved as workflow.png")
+
+        return chain
 
 
 if __name__ == '__main__':
