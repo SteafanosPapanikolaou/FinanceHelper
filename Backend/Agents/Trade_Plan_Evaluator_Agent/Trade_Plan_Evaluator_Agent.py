@@ -263,7 +263,6 @@ class TradePlanEvaluatorAgent:
         self.state["entry_condition"].value = r["value"]
         print(self.state["entry_condition"].value)
 
-
         # print(initial_state)
 
     def _langgraph_agent(self):
@@ -290,15 +289,15 @@ class TradePlanEvaluatorAgent:
 
         def extract_single_information(state: State):
             reflection_prompt = f"""
+            Extract information from the used input only about: {state["subject"]}
+            
             User input:
             {state["input"]}
-
-            Extract information only about: {state["subject"]}
             """
             result = self.llm_check_lvl1_agent.invoke(
                 {"messages": [{"role": "user", "content": reflection_prompt}]},
             )
-            # print(result)
+            print(result['messages'][-1].content)
             return {
                 "value": result['messages'][-1].content,
                 "completeness_iteration": state["completeness_iteration"]+1
@@ -407,7 +406,7 @@ class TradePlanEvaluatorAgent:
 
 
 if __name__ == '__main__':
-    user_input = ("When we see bad news for BTC and the price is lower than 58k. "
+    user_input = ("My idea for an entry condition would be to see bad news for BTC and the price is lower than 58k. "
              "Use less than 2% of the portofolio."
              "Sell when the price of BTC is 10% on the upside or more, but remember to sell the"
              "position out if price falls more than 15%.")
